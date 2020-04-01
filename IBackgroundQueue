@@ -1,0 +1,5 @@
+    public interface IBackgroundQueue
+    {
+        void QueueBackgroundWorkItem(IQueueItem workItem);
+        Task<IQueueItem> DequeueAsync(CancellationToken ct);
+    }
