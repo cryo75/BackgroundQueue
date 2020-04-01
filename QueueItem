@@ -1,0 +1,16 @@
+    public class QueueItem : IQueueItem
+    {
+        public IHubContext<MainHub, IMainHub> HubContext { get; private set; }
+        public IPrincipal Principal { get; private set; }
+        public Func<CancellationToken, Task> Work { get; private set; }
+
+        public QueueItem(
+            IHubContext<MainHub, IMainHub> hubContext,
+            IPrincipal principal,
+            Func<CancellationToken, Task> work)
+        {
+            this.HubContext = hubContext;
+            this.Principal = principal;
+            this.Work = work;
+        }
+    }
