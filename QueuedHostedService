@@ -1,0 +1,58 @@
+    public class QueuedHostedService : BackgroundService
+    {
+        private readonly ILifetimeScope scope;
+        private readonly IPrincipalProvider provider;
+        private readonly ILogger<QueuedHostedService> logger;
+
+        public QueuedHostedService(
+            IBackgroundQueue taskQueue,
+            ILifetimeScope scope,
+            IPrincipalProvider provider,
+            ILogger<QueuedHostedService> logger)
+        {
+            TaskQueue = taskQueue;
+
+            this.scope = scope;
+            this.provider = provider;
+            this.logger = logger;
+        }
+
+        public IBackgroundQueue TaskQueue { get; }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            logger.LogInformation($"Queued Hosted Service is running.{Environment.NewLine}");
+
+            await BackgroundProcessing(stoppingToken);
+        }
+
+        private async Task BackgroundProcessing(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var workItem = await TaskQueue.DequeueAsync(stoppingToken);
+
+                try
+                {
+                    using (var queueScope = this.scope.BeginLifetimeScope(builder => {
+                        builder.RegisterInstance(new StaticPrincipalProvider(provider.GetPrincipal()))
+                               .As<IPrincipalProvider>();
+                    }))
+                    {
+                        await workItem.Work(queueScope, stoppingToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error occurred executing {WorkItem}.", nameof(workItem));
+                }
+            }
+        }
+
+        public override async Task StopAsync(CancellationToken stoppingToken)
+        {
+            logger.LogInformation("Queued Hosted Service is stopping.");
+
+            await base.StopAsync(stoppingToken);
+        }
+    }
