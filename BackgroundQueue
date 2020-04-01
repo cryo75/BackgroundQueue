@@ -1,0 +1,24 @@
+    public class BackgroundQueue : IBackgroundQueue
+    {
+        private ConcurrentQueue<IQueueItem> items = new ConcurrentQueue<IQueueItem>();
+        private SemaphoreSlim signal = new SemaphoreSlim(0);
+
+        public void QueueBackgroundWorkItem(IQueueItem item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            items.Enqueue(item);
+            signal.Release();
+        }
+
+        public async Task<IQueueItem> DequeueAsync(CancellationToken ct)
+        {
+            await signal.WaitAsync(ct);
+            items.TryDequeue(out var workItem);
+
+            return workItem;
+        }
+    }
