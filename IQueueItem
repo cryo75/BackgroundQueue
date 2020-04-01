@@ -1,0 +1,6 @@
+    public interface IQueueItem
+    {
+        IHubContext<MainHub, IMainHub> HubContext { get; }
+        IPrincipal Principal { get; }
+        Func<CancellationToken, Task> Work { get; }
+    }
